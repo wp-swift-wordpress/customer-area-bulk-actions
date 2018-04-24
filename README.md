@@ -29,17 +29,7 @@ This will add new custom bulk actions the **WP Customer Area** private files adm
 
 The **Publish** bulk action works as expected.
 
-### To-Do
-
-The **Publish and Notify** bulk action is not yet implemented.
-
-### Testing
-
-There is also **Test Ajax** function that makes an ajax call to the server and outputs debug information to _debug.log_ Requires WordPress debugging to be turned on).
-
-Note, this is still under development and there are bugs present.
-
-## Bugs
+## Implementation
 
 The following function is used to to add the bulk actions:
 
@@ -54,7 +44,7 @@ function cuar_add_file_actions($actions) {
 
 The callback is handled by the following function:
 
-```
+```php
 add_action('cuar/core/admin/content-list-table/do-bulk-action?post_type=cuar_private_file', 'cuar_process_file_action', 10, 3);
 function cuar_process_file_action($post_id, $action, $list_object) {
     if ( $action !== 'cuar-publish-post' && $action !== 'cuar-publish-post-notify' ) return;
@@ -97,6 +87,10 @@ function cuar_process_file_action($post_id, $action, $list_object) {
     }  
 }
 ```
+
+## Bugs
+
+### Error Log
 
 This is the error log as a result of calling the `$no_addon->mailer()->send_mass_notification()` function:
 
