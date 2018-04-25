@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Customer Area Bulk Actions (Unofficial Add-on)
+Plugin Name: WP Customer Area - Bulk Actions (Unofficial Add-on)
 Plugin URI: https://github.com/wp-swift-wordpress/customer-area-bulk-actions
 Description: Adds new bulk actions to Customer Area private files.
 Version: 1
@@ -21,40 +21,41 @@ add_action('cuar/core/admin/content-list-table/do-bulk-action?post_type=cuar_pri
 function cuar_process_file_action($post_id, $action, $list_object) {
     if ( $action !== 'cuar-publish-post' && $action !== 'cuar-publish-post-notify' ) return;
 
-    echo '<pre>cuar_process_file_action( $post_id = '.$post_id.', $action = '.$action.' )</pre>';echo "<hr>";
-    $post = array( 'ID' => $post_id, 'post_status' => 'publish' );
+    $current_post = get_post( $post_id );
+    $post_status = $current_post->post_status;   
 
-
-    if (function_exists('cuar_addon')) {
+    if( function_exists('cuar_addon') && $post_status !== 'publish' ) {
+    
+        $post = array( 'ID' => $post_id, 'post_status' => 'publish' );
+        $post_id = wp_update_post( $post );
         $po_addon = cuar_addon('post-owner'); 
         $no_addon = cuar_addon('notifications');
-    }  
+        
+        if ( !is_wp_error($post_id) ): 
 
-    if ( isset($po_addon) && isset($no_addon) ) {
+            $msg = '<strong>' . $current_post->post_title . '</strong> has been published';
 
-        $owners = $po_addon->get_post_owners($post_id);
+            if ( $action === 'cuar-publish-post-notify' ) {
 
-        if (isset( $owners["grp"] )) {
-            $recipient_ids = $owners["grp"];
+                $recipient_ids = $po_addon->get_post_owner_user_ids($post_id);
 
-
+                $no_addon->mailer()->send_mass_notification(
+                    $recipient_ids, 
+                    'private-content-published', 
+                    $post_id, 
+                    array('email_format' => $no_addon->settings()->get_email_format())
+                );
+                $msg .= ' and notifications have been sent.';
+            }
+            else {
+                $msg .= '.';
+            }
+            $msg = '<div>' . $msg . '</div>';
             ?>
-            <div class="notice notice-success is-dismissible">
-                <p>Bulk action triggered on post <strong><?php echo $post_id; ?></strong> with action <code><?php echo $action; ?></code>.</p>
-                <small>(This is still under developemnt while we are testing notfications.)</small>
-                <hr>
-                <p>Attempting to send to these recipients:</p>
-                <?php echo '<pre>$recipient_ids: '; var_dump($recipient_ids); echo '</pre>'; ?>
-            </div> 
+            <div class="notice notice-success">
+                <?php echo $msg; ?>
+            </div>
             <?php
-			$no_addon->mailer()->send_mass_notification(
-			    $recipient_ids, 
-			    'private-content-published', 
-			    $post_id, 
-			    array('email_format' => $no_addon->settings()->get_email_format())
-			);
-
-        }
-
-    }  
+        endif;
+    }
 }
